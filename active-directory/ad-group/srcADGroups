@@ -1,0 +1,11 @@
+let
+  // source
+  Source = ActiveDirectory.Domains(vqDomain),
+  lstDomain = Source{[Domain = vqDomain]}[Object Categories],
+  lstTable = lstDomain{[Category = "group"]}[Objects],
+  exp_SecurityPrincipal = Table.ExpandRecordColumn(lstTable, "securityPrincipal", {"sAMAccountName", "sAMAccountType"}, {"sAMAccountName", "sAMAccountType"}),
+  filt_Nulls = Table.SelectRows(exp_SecurityPrincipal, each [sAMAccountName] <> null),
+  selColumns = Table.SelectColumns(filt_Nulls, {"sAMAccountName", "displayName", "group"}),
+  renColumns = Table.RenameColumns(selColumns, {{"sAMAccountName", "groupId"}})
+in
+  renColumns
