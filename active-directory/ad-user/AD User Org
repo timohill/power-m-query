@@ -1,0 +1,19 @@
+let
+  Source = srcADUser,
+  rem_Top = Table.RemoveColumns(Source, {"displayName", "top", "person", "user", "organizationalPerson"}),
+  exp_CustAttr = Table.ExpandRecordColumn(rem_Top, "msExchCustomAttributes", {"extensionAttribute15"}, {"ea15.org"}),
+  rev_Org = Table.AddColumn(exp_CustAttr, "ea15rev", each Text.Reverse([ea15.org])),
+  split_revOrg = Table.SplitColumn(rev_Org, "ea15rev", Splitter.SplitTextByDelimiter(" >- ", QuoteStyle.Csv), {"ea15.orgL1", "ea15.orgL2", "ea15.orgL3", "ea15.orgL4", "ea15.orgL5", "ea15.orgL6", "ea15.orgL7", "ea15.orgL8", "ea15.orgL9"}),
+  rev_NewOrg = Table.TransformColumns(split_revOrg,{{"ea15.orgL1", Text.Reverse, type text}, {"ea15.orgL2", Text.Reverse, type text}, {"ea15.orgL3", Text.Reverse, type text}, {"ea15.orgL4", Text.Reverse, type text}, {"ea15.orgL5", Text.Reverse, type text}, {"ea15.orgL6", Text.Reverse, type text}, {"ea15.orgL7", Text.Reverse, type text}, {"ea15.orgL8", Text.Reverse, type text}, {"ea15.orgL9", Text.Reverse, type text}}),
+  rem_Dupes = Table.Distinct(rev_NewOrg, {"ea15.org", "ea15.orgL1", "ea15.orgL2", "ea15.orgL3", "ea15.orgL4", "ea15.orgL5", "ea15.orgL6", "ea15.orgL7", "ea15.orgL8", "ea15.orgL9"}),
+  add_L1code = Table.AddColumn(rem_Dupes, "ea15.orgL1.code", each Text.Select([ea15.orgL1], {"A".."Z"}), type text),
+  add_L2code = Table.AddColumn(add_L1code, "ea15.orgL2.code", each Text.Select([ea15.orgL2], {"A".."Z"}), type text),
+  add_L3code = Table.AddColumn(add_L2code, "ea15.orgL3.code", each Text.Select([ea15.orgL3], {"A".."Z"}), type text),
+  add_L4code = Table.AddColumn(add_L3code, "ea15.orgL4.code", each Text.Select([ea15.orgL4], {"A".."Z"}), type text),
+  add_L5code = Table.AddColumn(add_L4code, "ea15.orgL5.code", each Text.Select([ea15.orgL5], {"A".."Z"}), type text),
+  add_L6code = Table.AddColumn(add_L5code, "ea15.orgL6.code", each Text.Select([ea15.orgL6], {"A".."Z"}), type text),
+  add_L7code = Table.AddColumn(add_L6code, "ea15.orgL7.code", each Text.Select([ea15.orgL7], {"A".."Z"}), type text),
+  add_L8code = Table.AddColumn(add_L7code, "ea15.orgL8.code", each Text.Select([ea15.orgL8], {"A".."Z"}), type text),
+  add_L9code = Table.AddColumn(add_L8code, "ea15.orgL9.code", each Text.Select([ea15.orgL9], {"A".."Z"}), type text)
+in
+  add_L9code
