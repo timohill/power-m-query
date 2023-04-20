@@ -1,0 +1,5 @@
+let
+  Source = srcADGroups,
+  remColumns = Table.RemoveColumns(Source, {"group"})
+in
+  remColumns
