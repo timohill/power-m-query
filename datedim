@@ -1,0 +1,157 @@
+let
+    /* DateDim M Query | v1.00 | Tim Hill
+        20191216 v1.01 - StartofQuater referenced week not month. Removing prior 4 fields
+        20200124 V1.02 - Included Current DateTimeZone field
+        20200206 V1.03 - Current DateTimeZone changed type to DTZ
+        20200226 v1.04 - Relative FiscYr out by 1 fixed
+        20200424 v1.05 - Relative Day DayDesc added
+        20200429 v1.06 - LocalNow on MS Server is UTC. Hardcoded zone switch to AEST. Affects all relative dates.//
+        - CurrentDate now reflects AEST. ServerDates is LocalNow
+        20200622 v1.07 - Relative Week - Reverse numbers - for prev + for future
+        20200813 v1.08 - FiscalMonthYYYY.MM included
+        20200828 v1.09 - Relative FiscYr and Desc out by 1 fix
+        20200902 v1.10 - Fiscal year updates to most values
+        20200902 v1.11 - Fiscal QuarterQQ change type to text (from type)
+        20210408 v1.12 - Relative FiscYr and Desc out by 1 fix (updated for v1.09 in Jan-Jun months)
+        20210723 v1.13 - Relative FiscYr
+        20220225 v1.14 - Added BusinessDay
+        20220614 v1.15 - Setup for 150 years begin 1900 with DateDim references this
+    */
+
+  
+  // Hardcoded solution
+  // Parameterised and MinMax selection see other solution Scope Setup Header
+  // Scope ----------------------------------------------------------------------------------------------------
+  // Setup a Date Range - Hardcoded Start and End
+  StartDate = #date(1900, 1, 1),
+  EndDate = #date(2050, 12, 31),
+
+  // Hardcoded solution
+  // Parameterised and MinMax selection see other solution Scope Setup Header
+  
+  // Setup -------------------------------------------------------------------------------------------------
+  NumberOfDays = Duration.Days( EndDate - StartDate ),
+  Dates = List.Dates(StartDate, NumberOfDays+1, #duration(1,0,0,0)),
+  #"Converted to Table" = Table.FromList(Dates, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+  #"Renamed Columns" = Table.RenameColumns(#"Converted to Table", {{"Column1", "Date"}}),
+  #"ChangeType Date" = Table.TransformColumnTypes(#"Renamed Columns", {{"Date", type date}}),
+  
+  // API version hardcode Aus BNE
+  // tzAEST = Json.Document(Web.Contents("https://worldtimeapi.org/api/timezone/Australia/Brisbane"))[utc_offset],
+    tzAEST = 10,
+  dtzNowAEST = DateTimeZone.SwitchZone(DateTimeZone.UtcNow(), tzAEST, 0),
+  dtNowAEST = DateTime.Date(dtzNowAEST),
+  
+  // Add this line below for a MonthDim - Swap following line to reference "MonthDim"
+  // #"MonthDim" = Table.SelectRows(#"ChangeType Date", each Date.Day([Date]) = 1),
+  // Lookups -----------------------------------------------------------------------------------------------
+  // Dissected Date
+  #"Insert DayOfWeek" = Table.AddColumn(#"ChangeType Date", "DayOfWeek", each Date.DayOfWeek([Date], Day.Sunday)+1, Int64.Type),
+  #"Insert BusinessDay" = Table.AddColumn(#"Insert DayOfWeek", "WorkDay", each if List.Contains({1,7}, Date.DayOfWeek([Date], Day.Sunday)+1) then 0 else 1, Int64.Type),
+  #"Insert Day" = Table.AddColumn(#"Insert BusinessDay", "DayOfMonth", each Date.Day([Date]), Int64.Type),
+  #"Insert DayOfYear" = Table.AddColumn(#"Insert Day", "Day", each Date.DayOfYear([Date]), Int64.Type),
+  #"Insert WeekOfYear" = Table.AddColumn(#"Insert DayOfYear", "WeekOfYear", each Date.WeekOfYear([Date], Day.Sunday), Int64.Type),
+  #"Insert Month" = Table.AddColumn(#"Insert WeekOfYear", "Month", each Date.Month([Date]), Int64.Type),
+  #"Insert MonthYYYYMM" = Table.AddColumn(#"Insert Month", "Month (YYYYMM)", each Number.ToText(Date.Year([Date])) & Text.End("0" & Number.ToText(Date.Month([Date])),2), type text),
+  #"Insert MonthYYYY-MM" = Table.AddColumn(#"Insert MonthYYYYMM", "Month (YYYY-MM)", each Number.ToText(Date.Year([Date])) & "-" & Text.End("0" & Number.ToText(Date.Month([Date])),2), type text),
+  #"Insert MonthMmmYYYY" = Table.AddColumn(#"Insert MonthYYYY-MM", "Month (Mmm YYYY)", each Text.Start(Date.MonthName([Date]),3) & " " & Number.ToText(Date.Year([Date])), type text),
+  #"Insert MonthMmmYY" = Table.AddColumn(#"Insert MonthMmmYYYY", "Month (Mmm-YY)", each Text.Start(Date.MonthName([Date]),3) & "-" & Text.End(Number.ToText(Date.Year([Date])),2), type text),
+  #"Insert Quarter" = Table.AddColumn(#"Insert MonthMmmYY", "Quarter", each Date.QuarterOfYear([Date]), Int64.Type),
+  #"Insert QuarterYYYY-Q" = Table.AddColumn(#"Insert Quarter", "Quarter (YYYY-Q)", each Number.ToText(Date.Year([Date])) & "-" & Number.ToText(Date.QuarterOfYear([Date])), type text),
+  #"Insert Year" = Table.AddColumn(#"Insert QuarterYYYY-Q", "Year", each Date.Year([Date]), Int64.Type),
+  // Date Names
+  #"Insert DayName" = Table.AddColumn(#"Insert Year", "DayName", each Date.DayOfWeekName([Date]), type text),
+  #"Insert MonthName" = Table.AddColumn(#"Insert DayName", "MonthName", each Date.MonthName([Date]), type text),
+  // Bookend Dates - Calendar
+  #"Insert StartOfWeek" = Table.AddColumn(#"Insert MonthName", "StartofWeek", each Date.StartOfWeek([Date], Day.Sunday), type date),
+  #"Insert EndOfWeek" = Table.AddColumn(#"Insert StartOfWeek", "EndofWeek", each Date.EndOfWeek([Date], Day.Sunday), type date),
+  #"Insert StartOfMonth" = Table.AddColumn(#"Insert EndOfWeek", "StartofMonth", each Date.StartOfMonth([Date]), type date),
+  #"Insert EndOfMonth" = Table.AddColumn(#"Insert StartOfMonth", "EndofMonth", each Date.EndOfMonth([Date]), type date),
+  #"Insert StartOfQuarter" = Table.AddColumn(#"Insert EndOfMonth", "StartOfQuarter", each Date.StartOfQuarter([Date]), type date),
+  #"Insert EndOfQuarter" = Table.AddColumn(#"Insert StartOfQuarter", "EndOfQuarter", each Date.EndOfQuarter([Date]), type date),
+  #"Insert StartOfYear" = Table.AddColumn(#"Insert EndOfQuarter", "StartOfYear", each Date.StartOfYear([Date]), type date),
+  #"Insert EndOfYear" = Table.AddColumn(#"Insert StartOfYear", "EndOfYear", each Date.EndOfYear([Date]), type date),
+  // Lookups - Relative --------------------------------------------------------------------------------------------------
+  #"Insert RelativeDay" = Table.AddColumn(#"Insert EndOfYear", "RelativeDay", each (Duration.Days( [Date] - DateTime.Date(dtNowAEST))), Int64.Type),
+  #"Insert RelativeDayDesc" = Table.AddColumn(#"Insert RelativeDay", "RelativeDayDesc", each if (Duration.Days( [Date] - DateTime.Date(dtNowAEST))) = 0
+        then "Current Day"
+        else if (Duration.Days( [Date] - DateTime.Date(dtNowAEST))) = -1
+          then "Previous Day"
+          else Date.ToText([Date]), type text),
+  #"Insert RelativeMonth" = Table.AddColumn(#"Insert RelativeDayDesc", "RelativeMonth", each (Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))), Int64.Type),
+  #"Insert RelativeMonthDesc" = Table.AddColumn(#"Insert RelativeMonth", "RelativeMonthDesc", each if (Date.Year([Date]) * 12 + Date.Month([Date])) = (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))) 
+		then "Current Month" 
+        else if (Date.Year([Date]) * 12 + Date.Month([Date])) > (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST)))  
+            then "Current Month + " & Number.ToText((Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST)))) 
+            else "Current Month " & Number.ToText((Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST)))), type text),
+  #"Insert RelativeMonthDescYYYY-MM" = Table.AddColumn(#"Insert RelativeMonthDesc", "RelativeMonthDesc (YYYY-MM)", each if (Date.Year([Date]) * 12 + Date.Month([Date])) = (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))) 
+            then "Current Month" 
+        else if (Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))) = -1 
+            then "Previous Month" 
+            else Number.ToText(Date.Year([Date])) & "-" & Text.End("0" & Number.ToText(Date.Month([Date])),2), type text),
+  #"Insert RelativeWeek" = Table.AddColumn(#"Insert RelativeMonthDescYYYY-MM", "RelativeWeek", each Number.RoundDown((Duration.Days([Date] - DateTime.Date(dtNowAEST))
+            - Date.DayOfWeek([Date], Day.Sunday)+1  
+            + Date.DayOfWeek(DateTime.Date(dtNowAEST), Day.Sunday)+1) / 7), Int64.Type),
+  #"Insert RelativeWeekDesc" = Table.AddColumn(#"Insert RelativeWeek", "RelativeWeekDesc", each if Number.RoundDown((Duration.Days([Date] - DateTime.Date(dtNowAEST))
+            - Date.DayOfWeek([Date], Day.Sunday)+1  
+            + Date.DayOfWeek(DateTime.Date(dtNowAEST), Day.Sunday)+1) / 7) = 0
+        then "Current Week"  
+        else (if Number.RoundDown((Duration.Days([Date] - DateTime.Date(dtNowAEST))
+            - Date.DayOfWeek([Date], Day.Sunday)+1  
+            + Date.DayOfWeek(DateTime.Date(dtNowAEST), Day.Sunday)+1) / 7) > 0
+            then "Current Week +"
+            else "Current Week ")
+        & Number.ToText(Number.RoundDown((Duration.Days([Date] - DateTime.Date(dtNowAEST))
+                - Date.DayOfWeek([Date], Day.Sunday)+1  
+                + Date.DayOfWeek(DateTime.Date(dtNowAEST), Day.Sunday)+1) / 7)), type text),
+  #"Insert RelativeYear" = Table.AddColumn(#"Insert RelativeWeekDesc", "RelativeYear", each Date.Year([Date]) - Date.Year(DateTime.Date(dtNowAEST)), Int64.Type),
+  #"Insert RelativeYearDesc" = Table.AddColumn(#"Insert RelativeYear", "RelativeYearDesc", each if Date.Year([Date]) = Date.Year(DateTime.Date(dtNowAEST)) 
+            then "Current Year" 
+        else (if Date.Year([Date]) > Date.Year(DateTime.Date(dtNowAEST)) 
+            then "Current Year +" 
+            else "Current Year") & Number.ToText(Date.Year([Date]) - Date.Year(DateTime.Date(dtNowAEST))), type text),
+  // Lookups - Fiscal -----------------------------------------------------------------------------------------------------
+  // Bookend Dates - Fiscal
+  #"Insert FiscalStartOfYear" = Table.AddColumn(#"Insert RelativeYearDesc", "FiscalStartOfYear", each if Date.Month([Date]) <= 6 then Date.AddMonths(Date.StartOfYear([Date]),-6) else Date.AddMonths(Date.StartOfYear([Date]),6), type date),
+  #"Insert FiscalEndOfYear" = Table.AddColumn(#"Insert FiscalStartOfYear", "FiscalEndOfYear", each if Date.Month([Date]) <= 6 then Date.AddMonths(Date.EndOfYear([Date]),-6) else Date.AddMonths(Date.EndOfYear([Date]),6), type date),
+  // included for finance link to SAP EDW period key
+  #"Insert FiscalMonthYYYYMMM" = Table.AddColumn(#"Insert FiscalEndOfYear", "Fiscal Period (YYYYMMM)", each Number.ToText(Date.Year([FiscalEndOfYear])) & Text.End("00" & Number.ToText(if Date.Month([Date]) <= 6 then Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),6)) else Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),-6))),3), type text),
+  #"Insert FiscalMonthMMM.YYYY" = Table.AddColumn(#"Insert FiscalMonthYYYYMMM", "Fiscal Period (MMM.YYYY)", each Text.End("00" & Number.ToText(if Date.Month([Date]) <= 6 then Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),6)) else Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),-6))),3) & "." & Number.ToText(Date.Year([FiscalEndOfYear])), type text),
+  #"Insert FiscalMonthYYYY.MM" = Table.AddColumn(#"Insert FiscalMonthMMM.YYYY", "Fiscal Period (YYYY.MM)", each Number.ToText(Date.Year([FiscalEndOfYear])) & "." & Text.End("00" & Number.ToText(if Date.Month([Date]) <= 6 then Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),6)) else Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),-6))),2), type text),
+  #"Insert FiscalDaysInYear" = Table.AddColumn(#"Insert FiscalMonthYYYY.MM", "FiscalDaysInYear", each Duration.Days([FiscalEndOfYear]-[FiscalStartOfYear])+1, Int64.Type),
+  #"Insert FiscalQuarter" = Table.AddColumn(#"Insert FiscalDaysInYear", "FiscalQuarter", each if Date.Month([Date]) <= 6 then Date.QuarterOfYear([Date]) + 2 else Date.QuarterOfYear([Date]) - 2, Int64.Type),
+  #"Insert FiscalQuarterQQ" = Table.AddColumn(#"Insert FiscalQuarter", "FiscalQuarter (QQ)", each "Q" & Number.ToText(if Date.Month([Date]) <= 6 then Date.QuarterOfYear([Date]) + 2 else Date.QuarterOfYear([Date]) - 2), type text),
+  #"Insert FiscalQuarterYYYY-Q" = Table.AddColumn(#"Insert FiscalQuarterQQ", "FiscalQuarter(YYYY-Q)", each Number.ToText(Date.Year([FiscalEndOfYear])) & "-" & Number.ToText(if Date.Month([Date]) <= 6 then Date.QuarterOfYear([Date]) + 2 else Date.QuarterOfYear([Date]) - 2), type text),
+  #"Insert FiscalQuarterYYYY-QQ" = Table.AddColumn(#"Insert FiscalQuarterYYYY-Q", "FiscalQuarter(YYYY-QQ)", each Number.ToText(Date.Year([FiscalEndOfYear])) & "-Q" & Number.ToText(if Date.Month([Date]) <= 6 then Date.QuarterOfYear([Date]) + 2 else Date.QuarterOfYear([Date]) - 2), type text),
+  #"Insert FiscalYear" = Table.AddColumn(#"Insert FiscalQuarterYYYY-QQ", "FiscalYear", each Date.Year([FiscalEndOfYear]), Int64.Type),
+  // Formatted Dates
+  #"Insert FiscalYearYYYY-YY" = Table.AddColumn(#"Insert FiscalYear", "FiscalYear (YYYY-YY)", each Number.ToText(Date.Year([FiscalStartOfYear])) & "-" & Text.End(Number.ToText(Date.Year([FiscalEndOfYear])),2), type text),
+  #"Insert FiscalYearYYYY/YY" = Table.AddColumn(#"Insert FiscalYearYYYY-YY", "FiscalYear (YYYY/YY)", each Number.ToText(Date.Year([FiscalStartOfYear])) & "/" & Text.End(Number.ToText(Date.Year([FiscalEndOfYear])),2), type text),
+  #"Insert FiscalYearYYYY-YYYY" = Table.AddColumn(#"Insert FiscalYearYYYY/YY", "FiscalYear (YYYY-YYYY)", each Number.ToText(Date.Year([FiscalStartOfYear])) & "-" & Number.ToText(Date.Year([FiscalEndOfYear])), type text),
+  #"Insert FiscalYearYYYY/YYYY" = Table.AddColumn(#"Insert FiscalYearYYYY-YYYY", "FiscalYear (YYYY/YYYY)", each Number.ToText(Date.Year([FiscalStartOfYear])) & "/" & Number.ToText(Date.Year([FiscalEndOfYear])), type text),
+  // Relative
+  #"Insert RelativeFiscalYear" = Table.AddColumn(#"Insert FiscalYearYYYY/YYYY", "RelativeFiscalYear", each if Date.Month(DateTime.Date(dtNowAEST)) <= 6  
+        then [FiscalYear] - Date.Year(DateTime.Date(dtNowAEST))
+        else [FiscalYear] - Date.Year(Date.AddMonths(DateTime.Date(dtNowAEST),6)), Int64.Type),
+  #"Insert RelativeFiscalYearDesc" = Table.AddColumn(#"Insert RelativeFiscalYear", "RelativeFiscalYearDesc", each if [RelativeFiscalYear] = 0
+            then "Current Fiscal Year" 
+        else (if [RelativeFiscalYear] > 0
+            then "Current Fiscal Year +"  
+            else "Current Fiscal Year ") & Number.ToText([RelativeFiscalYear]), type text),
+  #"Insert RelativeFiscalPeriod" = Table.AddColumn(#"Insert RelativeFiscalYearDesc", "RelativeFiscalPeriod", each (Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))), Int64.Type),
+  #"Insert RelativeFiscalPeriodDesc" = Table.AddColumn(#"Insert RelativeFiscalPeriod", "RelativeFiscalPeriodDesc", each if (Date.Year([Date]) * 12 + Date.Month([Date])) = (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))) 
+		then "Current Period" 
+        else if (Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST))) = -1
+            then "Previous Period"
+            else Number.ToText(Date.Year([FiscalEndOfYear])) & "." & Text.End("00" & Number.ToText(if Date.Month([Date]) <= 6 
+                then Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),6)) 
+                else Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),-6))),2), type text),
+  // Lookups - CurrentDate ----------------------------------------------------------------------------------------------------
+  #"Insert CurrentDate" = Table.AddColumn(#"Insert RelativeFiscalPeriodDesc", "CurrentDate", each dtNowAEST, type date),
+  #"Insert CurrentDateTimeZone" = Table.AddColumn(#"Insert CurrentDate", "CurrentDateTime", each dtzNowAEST, type datetimezone),
+  #"Insert ServerDate" = Table.AddColumn(#"Insert CurrentDateTimeZone", "ServerDate", each DateTime.Date(DateTime.LocalNow()), type date),
+  #"Insert ServerDateTimeZone" = Table.AddColumn(#"Insert ServerDate", "ServerDateTimeZone", each DateTimeZone.LocalNow(), type datetimezone),
+  #"Insert UTCDate" = Table.AddColumn(#"Insert ServerDateTimeZone", "UTCDate", each DateTime.Date(DateTimeZone.UtcNow()), type date),
+  #"Insert UTCDateTimeZone" = Table.AddColumn(#"Insert UTCDate", "UTCDateTimeZone", each DateTimeZone.UtcNow(), type datetimezone)
+in
+  #"Insert UTCDateTimeZone"
