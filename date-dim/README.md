@@ -8,6 +8,7 @@ The following additions can filter based on Hardcoding, MinMax on the fact table
 
 /** Scope ************************************************************************/ 
     // hardcoded date range
+    
     vStartDate = #date(2018,6,1), 			// you can set this to 1st of cal or fin yr
     vEndDate = #date(2019,12,31), 
 	
