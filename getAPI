@@ -1,0 +1,11 @@
+(urlRel) =>
+let
+    //note the url path cannot be a param due to dymanic source error - use rel path for dynamic url
+    Source = Json.Document(Web.Contents("https://data.gov.au/data/", [RelativePath=urlRel])),
+    tblConvertFromRecords = Table.FromRecords({Source}),
+    tblExpandJSON = Table.ExpandRecordColumn(tblConvertFromRecords, "result", {"records", "fields"}, {"records", "fields"}),
+    getRecords = tblExpandJSON{0}[records],
+    tblConvertFromList = Table.FromList(getRecords, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    tblExpandResults = Table.ExpandRecordColumn(tblConvertFromList, "Column1", {"_id", "Raw Date", "Date", "Holiday Name", "Information", "More Information", "Jurisdiction"}, {"id", "Raw Date", "Date", "Holiday Name", "Information", "More Information", "Jurisdiction"})
+in
+    tblExpandResults
