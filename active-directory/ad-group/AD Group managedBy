@@ -1,0 +1,11 @@
+let
+  Source = srcADGroups,
+  exp_Group = Table.ExpandRecordColumn(Source, "group", {"managedBy"}, {"managedBy"}),
+  exp_GroupManagedBy = Table.ExpandRecordColumn(exp_Group, "managedBy", {"displayName", "cn", "userPrincipalName"}, {"managedBy.displayName", "managedBy.cn", "managedBy.userPrincipalName"}),
+  add_Type = Table.AddColumn(exp_GroupManagedBy, "type", each "managedBy"),
+  #"Transform columns" = Table.TransformColumnTypes(add_Type, {{"managedBy.displayName", type text}, {"managedBy.cn", type text}, {"managedBy.userPrincipalName", type text}, {"type", type text}}),
+  #"Replace errors" = Table.ReplaceErrorValues(#"Transform columns", {{"managedBy.displayName", null}, {"managedBy.cn", null}, {"managedBy.userPrincipalName", null}, {"type", null}}),
+  #"Renamed columns" = Table.RenameColumns(#"Replace errors", {{"managedBy.cn", "managedBy.userId"}}),
+  #"Lowercased text" = Table.TransformColumns(#"Renamed columns", {{"managedBy.userPrincipalName", each Text.Lower(_), type nullable text}})
+in
+  #"Lowercased text"
