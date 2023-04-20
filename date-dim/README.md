@@ -1,7 +1,10 @@
-Date Dim
+# Date Dim
 
+Devleoped in Power M Query
 
+The Date dimension (DateDim) is a lookup for using dates as a filter in Power BI.
 
+The following additions can filter based on Hardcoding, MinMax on the fact tables, or Parameterisation.
 
 /** Scope ************************************************************************/ 
     // hardcoded date range
