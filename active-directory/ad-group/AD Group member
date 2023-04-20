@@ -1,0 +1,12 @@
+let
+  Source = srcADGroups,
+  exp_Group = Table.ExpandRecordColumn(Source, "group", {"member"}, {"member"}),
+  exp_GroupMember = Table.ExpandListColumn(exp_Group, "member"),
+  exp_GroupMember1 = Table.ExpandRecordColumn(exp_GroupMember, "member", {"displayName", "cn", "userPrincipalName"}, {"member.displayName", "member.cn", "member.userPrincipalName"}),
+  add_Type = Table.AddColumn(exp_GroupMember1, "type", each "member"),
+  #"Transform columns" = Table.TransformColumnTypes(add_Type, {{"member.displayName", type text}, {"member.cn", type text}, {"member.userPrincipalName", type text}, {"type", type text}}),
+  #"Replace errors" = Table.ReplaceErrorValues(#"Transform columns", {{"member.displayName", null}, {"member.cn", null}, {"member.userPrincipalName", null}, {"type", null}}),
+  #"Renamed columns" = Table.RenameColumns(#"Replace errors", {{"member.cn", "member.userId"}}),
+  #"Lowercased text" = Table.TransformColumns(#"Renamed columns", {{"member.userPrincipalName", each Text.Lower(_), type nullable text}})
+in
+  #"Lowercased text"
