@@ -1,0 +1,10 @@
+let
+    //var
+    StartDate = #date(1980,7,1),
+    EndDate = #date(2030,6,30),
+
+    //src
+    Source = #"DateDim (150y)",
+    filt50y = Table.SelectRows(Source, each [Date] >= StartDate and [Date] <= EndDate)
+in
+    filt50y
