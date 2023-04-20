@@ -1,0 +1,6 @@
+let
+  // MonthDim M Query | v1.00 | Tim Hill | Resources - DECO
+  Source = DateDim,
+  MonthDim = Table.SelectRows(Source, each Date.Day([Date]) = 1)
+in
+  MonthDim
