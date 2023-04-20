@@ -1,0 +1,14 @@
+let
+  Source = ActiveDirectory.Domains(vqDomain),
+  objCategories = Source{[Domain = vqDomain]}[Object Categories],
+  tblObject = objCategories{[Category = "user"]}[Objects],
+  selColumns = Table.SelectColumns(tblObject, {"displayName", "user", "organizationalPerson", "person", "top", "msExchCustomAttributes"}),
+  // setup Resources filter
+  dupe_Org = Table.DuplicateColumn(selColumns, "organizationalPerson", "org"),
+  exp_Org = Table.ExpandRecordColumn(dupe_Org, "org", {"company"}, {"Brand"}),
+  dupe_Cust = Table.DuplicateColumn(exp_Org, "msExchCustomAttributes", "cust"),
+  exp_Cust = Table.ExpandRecordColumn(dupe_Cust, "cust", {"extensionAttribute10"}, {"ea10.empType"}),
+  filt = Table.SelectRows(exp_Cust, each List.Contains({"Person","Admin"},[ea10.empType])),
+  rem_filtCols = Table.RemoveColumns(filt, {"Brand", "ea10.empType"})
+in
+  rem_filtCols
