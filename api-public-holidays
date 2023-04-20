@@ -1,0 +1,26 @@
+let
+  // var
+  urlSite = "https://data.gov.au/data/api/",
+  urlRel = "api/3/action/datastore_search",
+  prmResourceID = "?resource_id=",
+  prmLimit = "&limit=200",
+  // tbl
+  Source = #table({"year", "apiGuid"},
+    {
+        //source for adding new years
+        //https://data.gov.au/dataset/ds-dga-b1bc6077-dadd-4f61-9f8c-002ab2cdff10/details?q=
+        {2019, "bda4d4f2-7fde-4bfc-8a23-a6eefc8cef80"},
+        {2020, "c4163dc4-4f5a-4cae-b787-43ef0fcf8d8b"},
+        {2021, "2dee10ef-2d0c-44a0-a66b-eb8ce59d9110"},
+        {2022, "768053da-b12b-4196-8fef-9262829998f3"},
+        {2023, "d256f989-8f49-46eb-9770-1c6ee9bd2661"}
+    }),
+  // trns
+  addCol_url = Table.AddColumn(Source, "url", each urlSite & urlRel & prmResourceID & [apiGuid] & prmLimit),
+  addCol_api = Table.AddColumn(addCol_url, "api", each getAPI(urlRel & prmResourceID & [apiGuid] & prmLimit)),
+  expAPI = Table.ExpandTableColumn(addCol_api, "api", {"id", "Raw Date", "Date", "Holiday Name", "Information", "More Information", "Jurisdiction"}, {"api.id", "api.Raw Date", "api.Date", "api.Holiday Name", "api.Information", "api.More Information", "api.Jurisdiction"}),
+  trnCols = Table.TransformColumnTypes(expAPI, {{"year", type text}, {"apiGuid", type text}, {"url", type text}, {"api.id", type text}, {"api.Raw Date", type text}, {"api.Date", type text}, {"api.Holiday Name", type text}, {"api.Information", type text}, {"api.More Information", type text}, {"api.Jurisdiction", type text}}),
+  repErrs = Table.ReplaceErrorValues(trnCols, {{"year", null}, {"apiGuid", null}, {"url", null}, {"api.id", null}, {"api.Raw Date", null}, {"api.Date", null}, {"api.Holiday Name", null}, {"api.Information", null}, {"api.More Information", null}, {"api.Jurisdiction", null}}),
+  addCol_date = Table.TransformColumnTypes(Table.AddColumn(repErrs, "date", each Date.FromText([api.Date])), {{"date", type date}})
+in
+  addCol_date
