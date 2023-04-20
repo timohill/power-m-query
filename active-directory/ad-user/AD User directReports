@@ -1,0 +1,13 @@
+let
+  Source = #"srcADUser",
+  exp_Person = Table.ExpandRecordColumn(Source, "person", {"cn"}, {"userId"}),
+  exp_User = Table.ExpandRecordColumn(exp_Person, "user", {"userPrincipalName"}, {"userPrincipalName"}),
+  rem_Columns = Table.RemoveColumns(exp_User, {"organizationalPerson", "msExchCustomAttributes"}),
+  exp_Top = Table.ExpandRecordColumn(rem_Columns, "top", {"directReports"}, {"top.directReports"}),
+  exp_list = Table.ExpandListColumn(exp_Top, "top.directReports"),
+  exp_record = Table.ExpandRecordColumn(exp_list, "top.directReports", {"cn", "userPrincipalName"}, {"dr.userId", "dr.userPrincipalName"}),
+  #"Transform columns" = Table.TransformColumnTypes(exp_record, {{"dr.userId", type text}, {"dr.userPrincipalName", type text}}),
+  #"Replace errors" = Table.ReplaceErrorValues(#"Transform columns", {{"dr.userId", null}, {"dr.userPrincipalName", null}}),
+  #"Lowercased text" = Table.TransformColumns(#"Replace errors", {{"userPrincipalName", each Text.Lower(_), type nullable text}})
+in
+  #"Lowercased text"
