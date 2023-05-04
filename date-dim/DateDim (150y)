@@ -1,6 +1,6 @@
 let
     /* DateDim M Query | v1.00 | Tim Hill
-        20191216 v1.01 - StartofQuater referenced week not month. Removing prior 4 fields
+        20191216 v1.01 - StartofQuarter referenced week not month. Removing prior 4 fields
         20200124 V1.02 - Included Current DateTimeZone field
         20200206 V1.03 - Current DateTimeZone changed type to DTZ
         20200226 v1.04 - Relative FiscYr out by 1 fixed
