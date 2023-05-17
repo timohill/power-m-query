@@ -1,5 +1,5 @@
 let
-  // MonthDim M Query | v1.00 | Tim Hill | Resources - DECO
+  // MonthDim M Query | v1.00 | Tim Hill
   Source = DateDim,
   MonthDim = Table.SelectRows(Source, each Date.Day([Date]) = 1)
 in
