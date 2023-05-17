@@ -1,0 +1,20 @@
+let
+    Source = msdyn_projecttasks,
+    #"Removed Other Columns" = Table.SelectColumns(Source,{"ProjectTaskId", "ProjectTaskParentId"}),
+
+    ChangedType = Table.TransformColumnTypes(#"Removed Other Columns",{{"ProjectTaskId", type text}, {"ProjectTaskParentId", type text}}),
+
+    lstPT_ID = List.Buffer( ChangedType[ProjectTaskId] ),
+    lstPT_PID = List.Buffer( ChangedType[ProjectTaskParentId] ),
+
+    fnGetHighestParent =  (n as text) as text =>
+        let
+            PosOfParent = List.PositionOf( lstPT_ID, n ),
+            ParID = lstPT_PID{PosOfParent}
+         in
+            if ParID = null then lstPT_ID{PosOfParent} else @fnGetHighestParent(lstPT_PID{PosOfParent}),
+
+    output = Table.AddColumn( ChangedType, "ProjectTaskHighestParentId", each  fnGetHighestParent( [ProjectTaskId] ),  type text)
+    
+in
+   output
