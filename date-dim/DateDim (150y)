@@ -16,6 +16,7 @@ let
         20210723 v1.13 - Relative FiscYr
         20220225 v1.14 - Added BusinessDay
         20220614 v1.15 - Setup for 150 years begin 1900 with DateDim references this
+	20230614 v1.16 - Added Relative Quarter which is the same for FY and Cal
     */
 
   
@@ -146,8 +147,15 @@ let
             else Number.ToText(Date.Year([FiscalEndOfYear])) & "." & Text.End("00" & Number.ToText(if Date.Month([Date]) <= 6 
                 then Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),6)) 
                 else Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),-6))),2), type text),
+  #"Insert RelativeQuarter" = Table.AddColumn(#"Insert RelativeFiscalPeriodDesc", "RelativeQuarter", each Number.RoundUp(((Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST)))) / 3), Int64.Type),
+  #"Insert RelativeQuarterDesc" = Table.AddColumn(#"Insert RelativeQuarter", "RelativeQuarterDesc", each 
+            if [RelativeQuarter] = 0 then "Current Quarter"
+            else if [RelativeQuarter] = -1 then "Previous Quarter"
+                else (if [RelativeQuarter] > 0 then "Current Quarter +"  
+                    else "Current Quarter ") & Number.ToText([RelativeQuarter]), type text),
+		    
   // Lookups - CurrentDate ----------------------------------------------------------------------------------------------------
-  #"Insert CurrentDate" = Table.AddColumn(#"Insert RelativeFiscalPeriodDesc", "CurrentDate", each dtNowAEST, type date),
+  #"Insert CurrentDate" = Table.AddColumn(#"Insert RelativeQuarterDesc", "CurrentDate", each dtNowAEST, type date),
   #"Insert CurrentDateTimeZone" = Table.AddColumn(#"Insert CurrentDate", "CurrentDateTime", each dtzNowAEST, type datetimezone),
   #"Insert ServerDate" = Table.AddColumn(#"Insert CurrentDateTimeZone", "ServerDate", each DateTime.Date(DateTime.LocalNow()), type date),
   #"Insert ServerDateTimeZone" = Table.AddColumn(#"Insert ServerDate", "ServerDateTimeZone", each DateTimeZone.LocalNow(), type datetimezone),
