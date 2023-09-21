@@ -1,6 +1,6 @@
 let
-    /* DateDim M Query | v1.00 | Tim Hill
-        20191216 v1.01 - StartofQuarter referenced week not month. Removing prior 4 fields
+    /* DateDim M Query | v1.00 | Tim Hill | Resources - DECO
+        20191216 v1.01 - StartofQuater referenced week not month. Removing prior 4 fields
         20200124 V1.02 - Included Current DateTimeZone field
         20200206 V1.03 - Current DateTimeZone changed type to DTZ
         20200226 v1.04 - Relative FiscYr out by 1 fixed
@@ -16,7 +16,8 @@ let
         20210723 v1.13 - Relative FiscYr
         20220225 v1.14 - Added BusinessDay
         20220614 v1.15 - Setup for 150 years begin 1900 with DateDim references this
-	20230614 v1.16 - Added Relative Quarter which is the same for FY and Cal
+        20230614 v1.16 - Added Relative Quarter which is the same for FY and Cal
+        20230905 v1.17 - Update Mod calc removes offset and re-adds.
     */
 
   
@@ -147,13 +148,18 @@ let
             else Number.ToText(Date.Year([FiscalEndOfYear])) & "." & Text.End("00" & Number.ToText(if Date.Month([Date]) <= 6 
                 then Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),6)) 
                 else Date.Month(Date.AddMonths(Date.StartOfMonth([Date]),-6))),2), type text),
-  #"Insert RelativeQuarter" = Table.AddColumn(#"Insert RelativeFiscalPeriodDesc", "RelativeQuarter", each Number.RoundUp(((Date.Year([Date]) * 12 + Date.Month([Date])) - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST)))) / 3), Int64.Type),
+
+    // /#"Insert RelativeFiscalPeriodDesc"
+  #"Insert RelativeQuarter" = Table.AddColumn(#"Insert RelativeFiscalPeriodDesc", "RelativeQuarter", each 
+        Number.RoundUp((( (Date.Year([Date]) * 12 + Date.Month([Date])) 
+                        - (Date.Year(DateTime.Date(dtNowAEST)) * 12 + Date.Month(DateTime.Date(dtNowAEST)))
+                        + Number.Mod(Date.Month(dtNowAEST)-1,3) +1 ) / 3 ) -1 ), Int64.Type),
   #"Insert RelativeQuarterDesc" = Table.AddColumn(#"Insert RelativeQuarter", "RelativeQuarterDesc", each 
             if [RelativeQuarter] = 0 then "Current Quarter"
             else if [RelativeQuarter] = -1 then "Previous Quarter"
                 else (if [RelativeQuarter] > 0 then "Current Quarter +"  
                     else "Current Quarter ") & Number.ToText([RelativeQuarter]), type text),
-		    
+
   // Lookups - CurrentDate ----------------------------------------------------------------------------------------------------
   #"Insert CurrentDate" = Table.AddColumn(#"Insert RelativeQuarterDesc", "CurrentDate", each dtNowAEST, type date),
   #"Insert CurrentDateTimeZone" = Table.AddColumn(#"Insert CurrentDate", "CurrentDateTime", each dtzNowAEST, type datetimezone),
@@ -161,5 +167,6 @@ let
   #"Insert ServerDateTimeZone" = Table.AddColumn(#"Insert ServerDate", "ServerDateTimeZone", each DateTimeZone.LocalNow(), type datetimezone),
   #"Insert UTCDate" = Table.AddColumn(#"Insert ServerDateTimeZone", "UTCDate", each DateTime.Date(DateTimeZone.UtcNow()), type date),
   #"Insert UTCDateTimeZone" = Table.AddColumn(#"Insert UTCDate", "UTCDateTimeZone", each DateTimeZone.UtcNow(), type datetimezone)
+
 in
   #"Insert UTCDateTimeZone"
