@@ -1,6 +1,6 @@
 let
   // var
-  urlSite = "https://data.gov.au/data/api/",
+  urlSite = "https://data.gov.au/data/",
   urlRel = "api/3/action/datastore_search",
   prmResourceID = "?resource_id=",
   prmLimit = "&limit=200",
@@ -13,7 +13,9 @@ let
         {2020, "c4163dc4-4f5a-4cae-b787-43ef0fcf8d8b"},
         {2021, "2dee10ef-2d0c-44a0-a66b-eb8ce59d9110"},
         {2022, "768053da-b12b-4196-8fef-9262829998f3"},
-        {2023, "d256f989-8f49-46eb-9770-1c6ee9bd2661"}
+        {2023, "d256f989-8f49-46eb-9770-1c6ee9bd2661"},
+        {2024, "9e920340-0744-4031-a497-98ab796633e8"},
+        {2025, "4d4d744b-50ed-45b9-ae77-760bc478ad75"}
     }),
   // trns
   addCol_url = Table.AddColumn(Source, "url", each urlSite & urlRel & prmResourceID & [apiGuid] & prmLimit),
