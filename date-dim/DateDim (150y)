@@ -1,24 +1,6 @@
 let
-    /* DateDim M Query | v1.00 | Tim Hill | Resources - DECO
-        20191216 v1.01 - StartofQuater referenced week not month. Removing prior 4 fields
-        20200124 V1.02 - Included Current DateTimeZone field
-        20200206 V1.03 - Current DateTimeZone changed type to DTZ
-        20200226 v1.04 - Relative FiscYr out by 1 fixed
-        20200424 v1.05 - Relative Day DayDesc added
-        20200429 v1.06 - LocalNow on MS Server is UTC. Hardcoded zone switch to AEST. Affects all relative dates.//
-        - CurrentDate now reflects AEST. ServerDates is LocalNow
-        20200622 v1.07 - Relative Week - Reverse numbers - for prev + for future
-        20200813 v1.08 - FiscalMonthYYYY.MM included
-        20200828 v1.09 - Relative FiscYr and Desc out by 1 fix
-        20200902 v1.10 - Fiscal year updates to most values
-        20200902 v1.11 - Fiscal QuarterQQ change type to text (from type)
-        20210408 v1.12 - Relative FiscYr and Desc out by 1 fix (updated for v1.09 in Jan-Jun months)
-        20210723 v1.13 - Relative FiscYr
-        20220225 v1.14 - Added BusinessDay
-        20220614 v1.15 - Setup for 150 years begin 1900 with DateDim references this
-        20230614 v1.16 - Added Relative Quarter which is the same for FY and Cal
-        20230905 v1.17 - Update Mod calc removes offset and re-adds.
-    */
+    /* DateDim M Query | v1.00 | Tim Hill | I made this */
+        
 
   
   // Hardcoded solution
