@@ -1,13 +1,22 @@
 let
-  Source = srcADUser,
+  Source = srcADUsers,
   rem_Top = Table.RemoveColumns(Source, {"top"}),
   exp_Person = Table.ExpandRecordColumn(rem_Top, "person", {"cn", "sn"}, {"userId", "Surname"}),
   exp_User = Table.ExpandRecordColumn(exp_Person, "user", {"givenName", "mail", "userPrincipalName"}, {"Given Name", "Email", "userPrincipalName"}),
-  exp_Org = Table.ExpandRecordColumn(exp_User, "organizationalPerson", {"c", "co", "company", "department", "employeeID", "l", "mobile", "personalTitle", "physicalDeliveryOfficeName", "postalCode", "st", "streetAddress", "title"}, {"Country Code", "Country", "Brand", "Team", "Employee Id", "Location", "Mobile", "Personal Title", "Office Name", "Postal Code", "State", "Street Address", "Title"}),
+  exp_Org = Table.ExpandRecordColumn(exp_User, "organizationalPerson", {"c", "co", "company", "department", "employeeID","employeeNumber", "l", "mobile", "personalTitle", "physicalDeliveryOfficeName", "postalCode", "st", "streetAddress", "title"}, {"Country Code", "Country", "Brand", "Team", "Employee Id","Position No", "Location", "Mobile", "Personal Title", "Office Name", "Postal Code", "State", "Street Address", "Title"}),
   exp_CustAttr = Table.ExpandRecordColumn(exp_Org, "msExchCustomAttributes", {"extensionAttribute1", "extensionAttribute2", "extensionAttribute3", "extensionAttribute4", "extensionAttribute5", "extensionAttribute6", "extensionAttribute7", "extensionAttribute8", "extensionAttribute9", "extensionAttribute10", "extensionAttribute11", "extensionAttribute12", "extensionAttribute13", "extensionAttribute14", "extensionAttribute15"}, {"ea01.domain", "ea02.homeGroup", "ea03.fileServer", "ea04.fullName", "ea05.subbrand", "ea06.o365Status", "ea07.GUID", "ea08", "ed09.officeId", "ea10.acctType", "ea11.acctStatus", "ea12.empType", "ea13", "ea14", "ea15.org"}),
-  rev_Org = Table.AddColumn(exp_CustAttr, "ea15rev", each Text.Reverse([ea15.org])),
-  split_revOrg = Table.SplitColumn(rev_Org, "ea15rev", Splitter.SplitTextByDelimiter(" >- ", QuoteStyle.Csv), {"ea15.orgL1", "ea15.orgL2", "ea15.orgL3", "ea15.orgL4", "ea15.orgL5", "ea15.orgL6", "ea15.orgL7", "ea15.orgL8", "ea15.orgL9"}),
-  rev_NewOrg = Table.TransformColumns(split_revOrg,{{"ea15.orgL1", Text.Reverse, type text}, {"ea15.orgL2", Text.Reverse, type text}, {"ea15.orgL3", Text.Reverse, type text}, {"ea15.orgL4", Text.Reverse, type text}, {"ea15.orgL5", Text.Reverse, type text}, {"ea15.orgL6", Text.Reverse, type text}, {"ea15.orgL7", Text.Reverse, type text}, {"ea15.orgL8", Text.Reverse, type text}, {"ea15.orgL9", Text.Reverse, type text}}),
-  #"Lowercased text" = Table.TransformColumns(rev_NewOrg, {{"userPrincipalName", each Text.Lower(_), type nullable text}, {"Email", each Text.Lower(_), type nullable text}})
+  
+    //org
+    rev_Org = Table.AddColumn(exp_CustAttr, "ea15rev", each Text.Reverse([ea15.org])),
+    split_revOrg = Table.SplitColumn(rev_Org, "ea15rev", Splitter.SplitTextByDelimiter(" >- ", QuoteStyle.Csv), {"ea15.orgL1", "ea15.orgL2", "ea15.orgL3", "ea15.orgL4", "ea15.orgL5", "ea15.orgL6", "ea15.orgL7", "ea15.orgL8", "ea15.orgL9"}),
+    rev_NewOrg = Table.TransformColumns(split_revOrg,{{"ea15.orgL1", Text.Reverse, type text}, {"ea15.orgL2", Text.Reverse, type text}, {"ea15.orgL3", Text.Reverse, type text}, {"ea15.orgL4", Text.Reverse, type text}, {"ea15.orgL5", Text.Reverse, type text}, {"ea15.orgL6", Text.Reverse, type text}, {"ea15.orgL7", Text.Reverse, type text}, {"ea15.orgL8", Text.Reverse, type text}, {"ea15.orgL9", Text.Reverse, type text}}),
+    add_L1code = Table.AddColumn(rev_NewOrg, "ea15.orgL1.code", each Text.Select([ea15.orgL1], {"A".."Z"}), type text),
+    add_L2code = Table.AddColumn(add_L1code, "ea15.orgL2.code", each Text.Select([ea15.orgL2], {"A".."Z"}), type text),
+    add_L3code = Table.AddColumn(add_L2code, "ea15.orgL3.code", each Text.Select([ea15.orgL3], {"A".."Z"}), type text),
+    add_L4code = Table.AddColumn(add_L3code, "ea15.orgL4.code", each Text.Select([ea15.orgL4], {"A".."Z"}), type text),
+
+    //
+    lower_UPN = Table.TransformColumns(add_L4code, {{"userPrincipalName", each Text.Lower(_), type nullable text}, {"Email", each Text.Lower(_), type nullable text}})
+
 in
-  #"Lowercased text"
+    lower_UPN
