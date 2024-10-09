@@ -1,5 +1,5 @@
 let
-  Source = srcADUser,
+  Source = srcADUsers,
   rem_Top = Table.RemoveColumns(Source, {"displayName", "top", "person", "user", "organizationalPerson"}),
   exp_CustAttr = Table.ExpandRecordColumn(rem_Top, "msExchCustomAttributes", {"extensionAttribute15"}, {"ea15.org"}),
   rev_Org = Table.AddColumn(exp_CustAttr, "ea15rev", each Text.Reverse([ea15.org])),
